@@ -6,7 +6,6 @@ import (
 
 type sample struct {
 	Url string
-	Valid bool
 	Hash string
 	Title string
 }
@@ -14,28 +13,25 @@ type sample struct {
 var sampleTests = []sample {
 	sample{
 		"http://imgur.com/gallery/jZv4f",
-		true,
 		"jZv4f",
 		"So at the Lego store you can make your own lego guys. I made Ron Swanson",
 	},
 	sample{
 		"http://i.imgur.com/jZv4f.jpg",
-		true,
 		"jZv4f",
 		"So at the Lego store you can make your own lego guys. I made Ron Swanson",
 	},
 	sample{
 		"http://imgur.com/jZv4f",
-		true,
 		"jZv4f",
 		"So at the Lego store you can make your own lego guys. I made Ron Swanson",
 	},
 }
 
-func TestValidUrl(t *testing.T) {
+func TestParseUrl(t *testing.T) {
 	for _, s := range sampleTests {
-		valid, hash := ValidUrl(s.Url)
-		if valid != s.Valid {
+		hash, err := ParseUrl(s.Url)
+		if err != nil {
 			t.Errorf("Invalid URL: %s", s.Url)
 		}
 		if hash != s.Hash {
@@ -46,15 +42,17 @@ func TestValidUrl(t *testing.T) {
 
 func TestHashInfo(t *testing.T) {
 	for _, s := range sampleTests {
-		valid, hash := ValidUrl(s.Url)
-		if valid {
-			info, err := HashInfo(hash)
-			if err != nil {
-				t.Errorf("Error getting info: %s", err.String())
-			}
-			if info.Title != s.Title {
-				t.Errorf("Invalid title, expected '%s', got '%s'", s.Title, info.Title)
-			}
+		hash, err := ParseUrl(s.Url)
+		if err != nil {
+			t.Errorf("Invalid URL: %s", s.Url)
+			continue
+		}
+		info, hErr := HashInfo(hash)
+		if hErr != nil {
+			t.Errorf("Error getting info: %s", hErr.String())
+		}
+		if info.Title != s.Title {
+			t.Errorf("Invalid title, expected '%s', got '%s'", s.Title, info.Title)
 		}
 	}
 }
