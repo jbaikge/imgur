@@ -4,78 +4,83 @@ import (
 	"fmt"
 	"http"
 	"io"
-	"io/ioutil"
 	"json"
+	"log"
 	"os"
-	"strings"
+	"path"
 	"url"
 )
 
-
 type ImageInfo struct {
-	Downs int
-	Title string
+	Downs  int
+	Title  string
 	Rating float64
-	Views int
-	Ups int
+	Views  int
+	Ups    int
 }
 
-type GalleryInfo struct {
-	Image ImageInfo
-}
-
-type Message struct {
-	Gallery GalleryInfo
+func (i *ImageInfo) UpdateRating() {
+	i.Rating = float64(i.Ups) / float64(i.Ups+i.Downs) * 100
 }
 
 func Load(r io.Reader) (*ImageInfo, os.Error) {
-	result := new(Message)
-	jsonBytes, err := ioutil.ReadAll(r)
-	if err != nil {
+	var result struct {
+		Gallery struct {
+			Image ImageInfo
+		}
+	}
+	dec := json.NewDecoder(r)
+	if err := dec.Decode(&result); err != nil {
 		return nil, err
 	}
-	json.Unmarshal(jsonBytes, &result)
 
-	// Calculate the rating
-	i := result.Gallery.Image
-	result.Gallery.Image.Rating = float64(i.Ups) / float64(i.Ups + i.Downs) * 100
-
+	result.Gallery.Image.UpdateRating()
 	return &result.Gallery.Image, nil
 }
 
-func ValidUrl(incoming string) (bool, string) {
-	// Force prefix with http:// 
-	if !strings.HasPrefix(incoming, "http://") {
-		incoming = "http://" + incoming
-	}
-
+func ParseUrl(incoming string) (hash string, err os.Error) {
 	// Parse URL
 	u, err := url.Parse(incoming)
 	if err != nil {
-		return false, ""
+		return "", err
 	}
 
-	// Check host
-	path := u.Path
-	if u.Host == "i.imgur.com" {
-		path = strings.Split(path, ".")[0]
+	if u.Scheme != "http" {
+		return "", os.NewError("Incorrect Scheme")
 	}
-	if strings.HasSuffix(u.Host, "imgur.com") {
-		bits := strings.Split(path, "/")
-		hash := bits[len(bits) - 1]
-		return true, hash
+
+	if u.Host != "i.imgur.com" {
+		return "", os.NewError("Incorrect Host")
 	}
-	return false, ""
+
+	hash = getHash(u)
+	if hash == "" {
+		err = os.NewError("Unable to find hash")
+	}
+
+	return
+}
+
+func getHash(u *url.URL) string {
+	file := path.Base(u.Path)
+	return file[:len(file)-len(path.Ext(file))]
 }
 
 func HashInfo(hash string) (*ImageInfo, os.Error) {
 	path := fmt.Sprintf("http://imgur.com/gallery/%s.json", hash)
-
-	response, err := http.Get(path)
+	resp, err := http.Get(path)
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
 
-	return Load(response.Body)
+	return Load(resp.Body)
+}
+
+func main() {
+	hash, err := ParseUrl("http://i.imgur.com/Wa9Jm.jpg")
+	if err != nil || hash == "" {
+		log.Fatal(err)
+	}
+	fmt.Println(HashInfo(hash))
 }
