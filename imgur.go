@@ -5,7 +5,6 @@ import (
 	"http"
 	"io"
 	"json"
-	"log"
 	"os"
 	"path"
 	"url"
@@ -75,12 +74,4 @@ func HashInfo(hash string) (*ImageInfo, os.Error) {
 	defer resp.Body.Close()
 
 	return Load(resp.Body)
-}
-
-func main() {
-	hash, err := ParseUrl("http://i.imgur.com/Wa9Jm.jpg")
-	if err != nil || hash == "" {
-		log.Fatal(err)
-	}
-	fmt.Println(HashInfo(hash))
 }
