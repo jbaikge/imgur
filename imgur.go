@@ -48,7 +48,7 @@ func ParseUrl(incoming string) (hash string, err os.Error) {
 		return "", os.NewError("Incorrect Scheme")
 	}
 
-	if u.Host != "i.imgur.com" {
+	if u.Host != "i.imgur.com" && u.Host != "imgur.com" {
 		return "", os.NewError("Incorrect Host")
 	}
 
