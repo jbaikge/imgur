@@ -5,12 +5,12 @@ import (
 )
 
 type sample struct {
-	Url string
-	Hash string
+	Url   string
+	Hash  string
 	Title string
 }
 
-var sampleTests = []sample {
+var sampleTests = []sample{
 	sample{
 		"http://imgur.com/gallery/jZv4f",
 		"jZv4f",
@@ -49,7 +49,7 @@ func TestHashInfo(t *testing.T) {
 		}
 		info, hErr := HashInfo(hash)
 		if hErr != nil {
-			t.Errorf("Error getting info: %s", hErr.String())
+			t.Errorf("Error getting info: %s", hErr)
 		}
 		if info.Title != s.Title {
 			t.Errorf("Invalid title, expected '%s', got '%s'", s.Title, info.Title)

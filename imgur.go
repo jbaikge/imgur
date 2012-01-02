@@ -1,13 +1,14 @@
 package imgur
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
-	"http"
 	"io"
-	"json"
-	"os"
+	"net/http"
+
+	"net/url"
 	"path"
-	"url"
 )
 
 type ImageInfo struct {
@@ -22,7 +23,7 @@ func (i *ImageInfo) UpdateRating() {
 	i.Rating = float64(i.Ups) / float64(i.Ups+i.Downs) * 100
 }
 
-func Load(r io.Reader) (*ImageInfo, os.Error) {
+func Load(r io.Reader) (*ImageInfo, error) {
 	var result struct {
 		Gallery struct {
 			Image ImageInfo
@@ -37,7 +38,7 @@ func Load(r io.Reader) (*ImageInfo, os.Error) {
 	return &result.Gallery.Image, nil
 }
 
-func ParseUrl(incoming string) (hash string, err os.Error) {
+func ParseUrl(incoming string) (hash string, err error) {
 	// Parse URL
 	u, err := url.Parse(incoming)
 	if err != nil {
@@ -45,16 +46,16 @@ func ParseUrl(incoming string) (hash string, err os.Error) {
 	}
 
 	if u.Scheme != "http" {
-		return "", os.NewError("Incorrect Scheme")
+		return "", errors.New("Incorrect Scheme")
 	}
 
 	if u.Host != "i.imgur.com" && u.Host != "imgur.com" {
-		return "", os.NewError("Incorrect Host")
+		return "", errors.New("Incorrect Host")
 	}
 
 	hash = getHash(u)
 	if hash == "" {
-		err = os.NewError("Unable to find hash")
+		err = errors.New("Unable to find hash")
 	}
 
 	return
@@ -65,7 +66,7 @@ func getHash(u *url.URL) string {
 	return file[:len(file)-len(path.Ext(file))]
 }
 
-func HashInfo(hash string) (*ImageInfo, os.Error) {
+func HashInfo(hash string) (*ImageInfo, error) {
 	path := fmt.Sprintf("http://imgur.com/gallery/%s.json", hash)
 	resp, err := http.Get(path)
 	if err != nil {
